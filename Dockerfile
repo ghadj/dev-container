@@ -36,19 +36,6 @@ RUN apt-get update && \
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
 
-# Install nvm, Node.js, and gemini-cli, and clean up
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && \
-    . "${NVM_DIR}/nvm.sh" && \
-    nvm install ${NODE_VERSION} && \
-    npm install -g @google/gemini-cli@latest && \
-    rm -rf /tmp/*
-
-# Add nvm to shell profiles
-RUN echo '\nexport NVM_DIR="$HOME/.nvm"' >> ~/.zshrc && \
-    echo '[ -s "${NVM_DIR}/nvm.sh" ] && \. "${NVM_DIR}/nvm.sh"' >> ~/.zshrc && \
-    echo '\nexport NVM_DIR="$HOME/.nvm"' >> ~/.bashrc && \
-    echo '[ -s "${NVM_DIR}/nvm.sh" ] && \. "${NVM_DIR}/nvm.sh"' >> ~/.bashrc
-
 # Set default Git configuration
 RUN git config --global user.name "${USERNAME}" && \
     git config --global user.email "${EMAIL}"
