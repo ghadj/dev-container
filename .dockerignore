@@ -1,0 +1,6 @@
+# Ignore git repository
+.git
+.gitignore
+
+# Ignore local files
+.DS_Store
