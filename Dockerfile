@@ -1,51 +1,60 @@
-FROM ubuntu:24.04
+FROM ubuntu:latest
 
+# Set build-time arguments
 ARG BUILD_DATE
 ARG DEBIAN_FRONTEND=noninteractive
-ARG USERNAME=devuser
+ARG USERNAME
 ARG USER_UID=1001
 ARG USER_GID=1001
-ARG EMAIL="dev@example.com"
+ARG EMAIL
 
-# Metadata
-LABEL maintainer=$EMAIL
-LABEL org.label-schema.build-date=$BUILD_DATE
-LABEL description="Lightweight Ubuntu dev environment with zsh, sudo, and common tools"
-
-# Install dependencies, create user, and set up basic environment in one layer
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        sudo \
-        curl \
-        wget \
-        git \
-        vim \
-        zsh \
-        ca-certificates \
-        locales \
-        tzdata \
-        less \
-        unzip \
-        build-essential \
-        software-properties-common && \
-    locale-gen en_US.UTF-8 && \
-    rm -rf /var/lib/apt/lists/* && \
-    groupadd --gid $USER_GID $USERNAME && \
-    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME -s /bin/zsh && \
-    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME && \
-    chmod 0440 /etc/sudoers.d/$USERNAME
-
+# Set environment variables
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8 \
-    TERM=xterm-256color
+    TERM=xterm-256color \
+    NVM_DIR=/home/${USERNAME}/.nvm \
+    NODE_VERSION=22
 
-USER $USERNAME
+# Set container metadata
+LABEL maintainer=${EMAIL}
+LABEL org.label-schema.build-date=${BUILD_DATE}
+LABEL description="Lightweight Ubuntu dev environment with zsh, sudo, and common tools"
 
-WORKDIR /home/$USERNAME
+# Install system dependencies, create a non-root user, and clean up
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        sudo curl wget git vim zsh ca-certificates locales tzdata less unzip build-essential software-properties-common && \
+    locale-gen en_US.UTF-8 && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --gid ${USER_GID} ${USERNAME} && \
+    useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} -s /bin/zsh && \
+    echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \
+    chmod 0440 /etc/sudoers.d/${USERNAME}
 
-# Git config defaults (optional)
-RUN git config --global user.name "Dev User" && \
-    git config --global user.email $EMAIL
+# Switch to the non-root user
+USER ${USERNAME}
+WORKDIR /home/${USERNAME}
 
+# Install nvm, Node.js, and gemini-cli, and clean up
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && \
+    . "${NVM_DIR}/nvm.sh" && \
+    nvm install ${NODE_VERSION} && \
+    npm install -g @google/gemini-cli@latest && \
+    rm -rf /tmp/*
+
+# Add nvm to shell profiles
+RUN echo '\nexport NVM_DIR="$HOME/.nvm"' >> ~/.zshrc && \
+    echo '[ -s "${NVM_DIR}/nvm.sh" ] && \. "${NVM_DIR}/nvm.sh"' >> ~/.zshrc && \
+    echo '\nexport NVM_DIR="$HOME/.nvm"' >> ~/.bashrc && \
+    echo '[ -s "${NVM_DIR}/nvm.sh" ] && \. "${NVM_DIR}/nvm.sh"' >> ~/.bashrc
+
+# Set default Git configuration
+RUN git config --global user.name "${USERNAME}" && \
+    git config --global user.email "${EMAIL}"
+
+# Add a healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD [ "zsh", "-c", "echo 'Container is healthy'" ]
+
+# Set the default command to run when the container starts
 CMD ["zsh"]

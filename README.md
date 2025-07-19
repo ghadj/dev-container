@@ -12,14 +12,24 @@ This project provides a Dockerized development environment.
 
 1.  **Build the Docker image:**
 
+    To build with default user (`devuser`) and email (`dev@example.com`):
     ```sh
     ./build.sh
+    ```
+    To build with a custom user and email:
+    ```sh
+    ./build.sh "your_username" "your_email@example.com"
     ```
 
 2.  **Run the Docker container:**
 
+    To run with the default user (`devuser`):
     ```sh
     ./run.sh
+    ```
+    To run with a custom user (must match the username used during build):
+    ```sh
+    ./run.sh "your_username"
     ```
 
 ## Files
